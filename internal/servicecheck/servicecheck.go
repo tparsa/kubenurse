@@ -211,7 +211,7 @@ func (c *Checker) checkNeighbours(nh []kubediscovery.Neighbour) {
 					res = fmt.Sprintf("%v", float64(stats.PacketsSent)*stats.PacketLoss)
 				}
 				err = pinger.Run()
-				if err == nil {
+				if err == nil && res != "0" {
 					err = fmt.Errorf(res)
 				}
 
