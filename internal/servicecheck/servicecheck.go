@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/go-ping/ping"
 	"github.com/postfinance/kubenurse/internal/kubediscovery"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -196,7 +197,29 @@ func (c *Checker) checkNeighbours(nh []kubediscovery.Neighbour) {
 				return c.doRequest("http://" + neighbour.PodIP + ":8080/alwayshappy")
 			}
 
+			pingCheck := func() (string, error) {
+				pinger, err := ping.NewPinger(neighbour.PodIP)
+				if err != nil {
+					return "", err
+				}
+				pinger.SetPrivileged(true)
+				pinger.Count = 1
+
+				var res string
+
+				pinger.OnFinish = func(stats *ping.Statistics) {
+					res = fmt.Sprintf("%v", float64(stats.PacketsSent)*stats.PacketLoss)
+				}
+				err = pinger.Run()
+				if err == nil {
+					err = fmt.Errorf(res)
+				}
+
+				return res, err
+			}
+
 			_, _ = c.measure(check, "path_"+neighbour.NodeName)
+			_, _ = c.measure(pingCheck, "ping_path_"+neighbour.NodeName)
 		}
 	}
 }
