@@ -1,8 +1,15 @@
-FROM alpine:latest
+FROM docker.yektanet.tech/golang:1.17 as BUILDER
+
+WORKDIR /app
+COPY . .
+RUN go mod download
+RUN CGO_ENABLED=0 go build -o kubenurse
+
+FROM docker.yektanet.tech/alpine:latest
 MAINTAINER OpenSource PF <opensource@postfinance.ch>
 
 RUN apk --no-cache add ca-certificates curl
-COPY kubenurse /bin/kubenurse
+COPY --from=BUILDER /app/kubenurse /bin/kubenurse
 
 # Run as nobody:x:65534:65534:nobody:/:/sbin/nologin
 USER 65534
