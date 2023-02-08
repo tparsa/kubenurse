@@ -4,7 +4,6 @@ WORKDIR /app
 COPY . .
 RUN go mod download
 RUN CGO_ENABLED=0 go build -o kubenurse
-RUN setcap cap_net_raw=+ep kubenurse
 
 FROM docker.yektanet.tech/alpine:latest
 MAINTAINER OpenSource PF <opensource@postfinance.ch>
