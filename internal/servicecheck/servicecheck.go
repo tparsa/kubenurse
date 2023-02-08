@@ -202,7 +202,6 @@ func (c *Checker) checkNeighbours(nh []kubediscovery.Neighbour) {
 				if err != nil {
 					return "", err
 				}
-				pinger.SetPrivileged(true)
 				pinger.Count = 1
 
 				var res string
