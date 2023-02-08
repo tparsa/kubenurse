@@ -202,6 +202,7 @@ func (c *Checker) checkNeighbours(nh []kubediscovery.Neighbour) {
 				if err != nil {
 					return "", err
 				}
+				pinger.SetPrivileged(true)
 				pinger.Count = 1
 				pinger.Timeout = c.httpClient.Timeout
 
