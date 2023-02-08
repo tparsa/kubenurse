@@ -203,6 +203,7 @@ func (c *Checker) checkNeighbours(nh []kubediscovery.Neighbour) {
 					return "", err
 				}
 				pinger.Count = 1
+				pinger.Timeout = c.httpClient.Timeout
 
 				var res string
 
