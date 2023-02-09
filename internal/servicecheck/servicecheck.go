@@ -7,9 +7,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
+	"strings"
 	"time"
 
-	"github.com/go-ping/ping"
 	"github.com/postfinance/kubenurse/internal/kubediscovery"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -198,25 +199,22 @@ func (c *Checker) checkNeighbours(nh []kubediscovery.Neighbour) {
 			}
 
 			pingCheck := func() (string, error) {
-				pinger, err := ping.NewPinger(neighbour.PodIP)
+				out, err := exec.Command("ping", "-n 1", neighbour.PodIP).Output()
 				if err != nil {
 					return "", err
 				}
-				pinger.SetPrivileged(true)
-				pinger.Count = 1
-				pinger.Timeout = c.httpClient.Timeout
 
-				var res string
+				lines := strings.Split(strings.TrimSuffix(string(out[:]), "\n"), "\n")
+				stats := lines[len(lines)-2]
+				splitedStats := strings.Split(stats, ", ")
+				packetLossStats := strings.Split(splitedStats[len(splitedStats)-1], "%")
+				packetLossPercents := packetLossStats[0]
 
-				pinger.OnFinish = func(stats *ping.Statistics) {
-					res = fmt.Sprintf("%v", float64(stats.PacketsSent)*stats.PacketLoss)
-				}
-				err = pinger.Run()
-				if err == nil && res != "0" {
-					err = fmt.Errorf(res)
+				if err == nil && packetLossPercents != "0" {
+					err = fmt.Errorf(packetLossPercents)
 				}
 
-				return res, err
+				return "", err
 			}
 
 			_, _ = c.measure(check, "path_"+neighbour.NodeName)
