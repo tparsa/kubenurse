@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -192,10 +193,12 @@ func (c *Checker) checkNeighbours(nh []kubediscovery.Neighbour) {
 		if c.allowUnschedulable || neighbour.NodeSchedulable == kubediscovery.NodeSchedulable {
 			check := func() (string, error) {
 				if c.UseTLS {
-					return c.doRequest("https://" + neighbour.PodIP + ":8443/alwayshappy")
+					_, err := c.doRequest("https://" + neighbour.PodIP + ":8443/alwayshappy")
+					return "", err
 				}
 
-				return c.doRequest("http://" + neighbour.PodIP + ":8080/alwayshappy")
+				_, err := c.doRequest("http://" + neighbour.PodIP + ":8080/alwayshappy")
+				return "", err
 			}
 
 			pingCheck := func() (string, error) {
@@ -206,6 +209,10 @@ func (c *Checker) checkNeighbours(nh []kubediscovery.Neighbour) {
 
 				lines := strings.Split(strings.TrimSuffix(string(out[:]), "\n"), "\n")
 				stats := lines[len(lines)-2]
+				durationStats := lines[len(lines)-1]
+				durations := strings.Split(durationStats, "= ")
+				durations = strings.Split(durations[1], "/")
+				res := durations[0]
 				splitedStats := strings.Split(stats, ", ")
 				packetLossStats := strings.Split(splitedStats[len(splitedStats)-1], "%")
 				packetLossPercents := packetLossStats[0]
@@ -214,7 +221,7 @@ func (c *Checker) checkNeighbours(nh []kubediscovery.Neighbour) {
 					err = fmt.Errorf(packetLossPercents)
 				}
 
-				return "", err
+				return res, err
 			}
 
 			_, _ = c.measure(check, "path_"+neighbour.NodeName)
@@ -231,7 +238,12 @@ func (c *Checker) measure(check Check, label string) (string, error) {
 	res, err := check()
 
 	// Process metrics
-	c.durationHistogram.WithLabelValues(label).Observe(time.Since(start).Seconds())
+	if res != "" {
+		duration, _ := strconv.ParseFloat(res, 64)
+		c.durationHistogram.WithLabelValues(label).Observe(duration / 1000)
+	} else {
+		c.durationHistogram.WithLabelValues(label).Observe(time.Since(start).Seconds())
+	}
 
 	if err != nil {
 		log.Printf("failed request for %s with %v", label, err)
