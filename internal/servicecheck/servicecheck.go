@@ -202,7 +202,7 @@ func (c *Checker) checkNeighbours(nh []kubediscovery.Neighbour) {
 			}
 
 			pingCheck := func() (string, error) {
-				out, err := exec.Command("/bin/ping", "-c", "1", "-W", "1", neighbour.PodIP).Output()
+				out, err := exec.Command("/bin/ping", "-c", "1", "-W", "5", neighbour.PodIP).Output()
 				if err != nil {
 					return "", err
 				}
