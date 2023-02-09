@@ -1,7 +1,7 @@
 FROM docker.yektanet.tech/golang:1.17 as BUILDER
 
 WORKDIR /app
-COPY go.mod go.sum .
+COPY go.mod go.sum /app
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -o kubenurse
